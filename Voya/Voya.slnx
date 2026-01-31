@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="../Voya.Tests/Voya.Tests.csproj" Id="252ee89e-b41a-4091-9aa1-ef4b0449f210" />
+  <Project Path="Voya.csproj" />
+</Solution>
