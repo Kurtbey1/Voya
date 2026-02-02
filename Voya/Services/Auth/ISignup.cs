@@ -5,6 +5,6 @@ using Voya.Services;
 namespace Voya.Services.Auth
 {
     public class ISignup
-    {
+    { 
     }
 }
