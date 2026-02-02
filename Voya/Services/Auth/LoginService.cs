@@ -50,7 +50,7 @@ namespace Voya.Services.Auth
                     Token = token,
                     Email = user.Email
                 });
-
+            
 
 
         }

@@ -12,6 +12,8 @@ namespace Voya.Data.Configurations
             entity.Property(t => t.Ticket_ID)
                 .ValueGeneratedNever();
 
+            entity.HasKey(t => t.Ticket_ID);
+
             entity.Property(t => t.Ticket_Type)
                 .IsRequired()
                 .HasMaxLength(50);
