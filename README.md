@@ -41,17 +41,15 @@
 
 ### 📥 Clone the Repository
 
-[![Git Clone](https://img.shields.io/badge/GIT-Clone_Project-blue?style=for-the-badge&logo=github)](https://github.com/yourusername/Voya.git)
+[![Git Clone](https://img.shields.io/badge/GIT-Clone_Project-blue?style=for-the-badge&logo=github)](https://github.com/Kurtbey1/Voya.git)
 
 ```bash
 git clone [https://github.com/Kurtbey1/Voya.git](https://github.com/Kurtbey1/Voya.git)
 cd Voya
-
-
+```
 ⚙️ Configuration
 Update appsettings.json with your specific keys:
-
-JSON
+```bash
 {
   "ConnectionStrings": {
     "DefaultConnection": "Server=YOUR_SERVER;Database=VoyaDB;Trusted_Connection=True;"
@@ -63,9 +61,12 @@ JSON
     "SecretKey": "Your_Super_Secret_Handshake_Key"
   }
 }
+```
+🚀 Database Migration
+```bash
+dotnet ef database update
+```
 
-
-🚀 Database MigrationPowerShelldotnet ef database update
 🔒 Security HandshakeTo protect the API, every request must include:HeaderValueAuthorizationBearer <Your_JWT_Token>X-Voya-Secret<Your_Configured_Secret_Key>
 
 🛡️ Technical Challenges Overcome
