@@ -29,9 +29,9 @@
 | Category | Technology |
 | :--- | :--- |
 | **Framework** | ASP.NET Core 8 (Web API) |
-| **Database** | SQL Server (Relational) |
+| **Database** | SQL Server |
 | **ORM** | Entity Framework Core |
-| **Identity** | Custom 64-bit ID Generator |
+| **Identity** | Custom 64-bit Snowflake ID Generator |
 | **Payments** | Stripe API |
 | **Security** | JWT + Custom Middleware Handshake |
 
@@ -41,10 +41,10 @@
 
 ### 📥 Clone the Repository
 
-[![Git Clone](https://img.shields.io/badge/GIT-Clone_Project-blue?style=for-the-badge&logo=github)](https://github.com/Kurtbey1/Voya.git)
+[![Git Clone](https://img.shields.io/badge/GIT-Clone_Project-blue?style=for-the-badge&logo=github)](https://github.com/kurtbey1/Voya.git)
 
 ```bash
-git clone [https://github.com/Kurtbey1/Voya.git](https://github.com/Kurtbey1/Voya.git)
+git clone [https://github.com/kurtbey1/Voya.git](https://github.com/kurtbey1/Voya.git)
 cd Voya
 ```
 ⚙️ Configuration
