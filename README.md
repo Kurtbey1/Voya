@@ -72,4 +72,4 @@ dotnet ef database update
 🛡️ Technical Challenges Overcome
 The ID Collision Challenge: Standard SQL Identities can be predictable and difficult to merge across databases. I implemented a custom IdGenerator producing unique 64-bit IDs. This ensures every entity has a unique identity across a distributed system, requiring deep integration with EF Core's ValueGeneratedNever() configuration.
 
-<p align="center">Developed with 🔥 by <strong>Abedalrhman</strong></p>
+<p align="center">Developed with 🔥 by <strong>Abdelrahman</strong></p>
