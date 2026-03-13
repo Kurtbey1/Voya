@@ -164,9 +164,15 @@ dotnet ef database update
 
 🔒 Security & Authentication
 To protect the API, every request must include the following headers:
-```bash
+```Code
 Authorization: Bearer <Your_JWT_Token>
 X-Voya-Secret: <Your_Configured_Secret_Key>
+```
+Example Request:
+```bash
+curl -X GET https://api.voya.com/api/hotels \
+  -H "Authorization: Bearer your_jwt_token_here" \
+  -H "X-Voya-Secret: your_secret_key_here"
 ```
 
 🛡️ Technical Challenges Overcome
