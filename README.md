@@ -9,7 +9,7 @@
 
 **Voya** is an enterprise-grade Hotel Booking API built with **ASP.NET Core 8**. This project moves beyond simple CRUD operations by implementing a **Distributed ID Generation** system, custom security handshakes, and a professional **Stripe** payment integration.
 
----
+--- 
 
 ## 🚀 Key Technical Highlights
 
