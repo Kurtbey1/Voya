@@ -15,10 +15,10 @@
         public long User_ID { get; set; }
 
         public User User { get; set; } = null!;
-
+        public long Hotel_ID { get; set; }
+        public virtual Hotel Hotel { get; set; } = null!;
         public ICollection<Transaction> Transactions {get;set;} = [] ;
-        public ICollection<RoomReservation> RoomReservations { get; set; } = [];
-        public ICollection<Ticket> Tickets{ get; set; } = [];
+
 
 
     }

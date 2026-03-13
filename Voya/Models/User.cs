@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Microsoft.AspNetCore.Identity;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 namespace Voya.Models
 {
@@ -15,7 +16,11 @@ namespace Voya.Models
         public string Password_Hash { get; set; } = string.Empty;
 
         public string Role { get; set; } = "Customer";
-        public bool IsDeleted { get; set; }
+        public bool IsDeleted { get; set; } = false;
+        public bool IsActive{ get; set; } = false;
+
+        public string National_Number { get; set; } = string.Empty;
+
 
         public ICollection<Booking> Bookings { get; set; } = [];
     }

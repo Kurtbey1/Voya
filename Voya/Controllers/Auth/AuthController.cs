@@ -1,39 +1,65 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Voya.Services.Auth;
-using Voya.Dtos;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using Voya.Dtos.Auth;
+using Voya.Services.Auth;
 
-namespace Voya.Controllers.Auth
+namespace Voya.Controllers.Auth;
+
+[ApiController]
+[Route("api/auth")]
+public class AuthController(ILoginService login, ISignupService signup, ITokenService _tokenService) : ControllerBase
 {
-    [ApiController]
-    [Route("api/auth")]
-    public class AuthController : ControllerBase
+    [HttpPost("signup")]
+    public async Task<IActionResult> Signup([FromBody] SignupReqDto req)
     {
-        private readonly ILoginService _login;
-        public AuthController(ILoginService login)
+        var result = await signup.SignUpAsync(req);
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("verify-email")]
+    public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailDto req)
+    {
+        var result = await signup.VerifyEmailAsync(req);
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("login")]
+    public async Task<IActionResult> Login([FromBody] LoginReqDto req)
+    {
+        var result = await login.LoginAsync(req);
+
+        if (!result.IsSuccess)
+            return Unauthorized(new { message = result.Error });
+
+        return Ok(result.Value);
+    }
+
+    [HttpPost("refresh")]
+    public async Task<IActionResult> Refresh([FromBody] TokenRequestDto req)
+    {
+        try
         {
-            _login = login ?? throw new ArgumentNullException(nameof(login));
-
+            var result = await _tokenService.Refresh(req);
+            return Ok(result);
         }
-
-        [HttpPost("login")]
-        public async Task<IActionResult> LoginAsync([FromBody]LoginReqDto req)
+        catch (Exception ex)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            var result = await _login.LoginAsync(req);
-
-            if (!result.IsSuccess)
-            {
-                return Unauthorized(new { message = result.Error });
-            }
-
-            return Ok(result.Value);
-
+            return Unauthorized(new { message = ex.Message });
         }
-      
+    }
+
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout()
+    {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (userId is null) return BadRequest(new { message = "Invalid User Context" });
+
+        await _tokenService.RevokeTokenAsync(userId);
+
+        return Ok(new { message = "Logged out successfully" });
     }
 }

@@ -9,9 +9,20 @@ namespace Voya.Models
 
         public string Hotel_Name { get; set; } = string.Empty;
 
-        public ICollection<Room> Rooms { get; set; } = [];
+        public string Description { get; set; } = string.Empty;
 
-        
+        public string Address { get; set; } = string.Empty;
 
-    } 
+        public int StarRating { get; set; }
+
+        public decimal BasePricePerNight { get; set; }
+
+        public string MainImageUrl { get; set; } = string.Empty;
+
+        public bool IsActive { get; set; } = true;
+
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        public ICollection<Booking> Bookings { get; set; } = [];
+    }
 }

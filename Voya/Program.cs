@@ -1,50 +1,112 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Voya.Data;
-using Voya.Services.Common;
-using Voya.Services.Auth; 
+﻿using FluentValidation;
+using FluentValidation.AspNetCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
-using Voya.Models; // تأكد أن كلاس User و SnowflakeIdGenerator موجودان هنا
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Stripe;
+using System.Security.Claims;
+using System.Text;
+using Voya.Data;
+using Voya.Middleware;
+using Voya.Models;
+using Voya.Options;
+using Voya.Services.Auth;
+using Voya.Services.Auth.Validator;
+using Voya.Services.Common;
+using Voya.Services.Email;
+using Voya.Services.HotelServices;
+using Voya.Services.Payment;
+using StripeTokenService = Stripe.TokenService;
+System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. إضافة الـ Controllers
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllers();
 
-// 2. إعداد قاعدة البيانات SQL Server
+var jwtSection = builder.Configuration.GetSection("Jwt");
+builder.Services.Configure<JwtSettings>(jwtSection);
+
+var stripeSecretKey = builder.Configuration["Stripe:SecretKey"];
+StripeConfiguration.ApiKey = stripeSecretKey;
+
+var jwtSettings = jwtSection.Get<JwtSettings>();
+
+if (jwtSettings?.Key != null)
+{
+    var key = Encoding.UTF8.GetBytes(jwtSettings.Key);
+    builder.Services.AddAuthentication(options =>
+    {
+        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    })
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtSettings.Issuer,
+            ValidAudience = jwtSettings.Audience,
+            IssuerSigningKey = new SymmetricSecurityKey(key),
+            ClockSkew = TimeSpan.Zero,
+            RoleClaimType = "Role"
+        };
+    });
+}
+
 var connStr = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? throw new InvalidOperationException("Missing connection string: DefaultConnection");
+              ?? throw new InvalidOperationException("Missing connection string");
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(connStr));
 
-// 3. تسجيل الخدمات مع حل تضارب الأسماء
-builder.Services.AddScoped<ITokenService, TokenService>();
 
-// هنا نستخدم الاسم الكامل Voya.Models.User لكي لا يختلط الأمر على الـ Compiler مع IdentityUser
-builder.Services.AddScoped<IPasswordHasher<Voya.Models.User>, PasswordHasher<Voya.Models.User>>();
 
-builder.Services.AddScoped<LoginService>();
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.Events.OnRedirectToLogin = context =>
+    {
+        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+        return Task.CompletedTask;
+    };
+    options.Events.OnRedirectToAccessDenied = context =>
+    {
+        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+        return Task.CompletedTask;
+    };
+});
 
-// 4. تسجيل الـ Singleton
-// ملاحظة: تأكد أن SnowflakeIdGenerator موجود في الـ Namespace الصحيح
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379";
+    options.InstanceName = "Voya_";
+});
+
+builder.Services.AddFluentValidationAutoValidation()
+                .AddValidatorsFromAssemblyContaining<SignupRequestValidator>();
+
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<ISignupService, SignupService>();
+builder.Services.AddScoped<ITokenService, Voya.Services.Auth.TokenService>();
+builder.Services.AddScoped<IStripeService, StripeService>();
+builder.Services.AddScoped<ILoginService, LoginService>();
+builder.Services.AddScoped<IHotelService, HotelService>();
 builder.Services.AddSingleton<IIdGenerator>(new SnowflakeIdGenerator(machineId: 1));
+builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
 
-// --- إعدادات الـ Pipeline ---
-if (!app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Home/Error");
-    app.UseHsts();
+    app.UseDeveloperExceptionPage();
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles();
-app.UseRouting();
+app.UseMiddleware<SecurityMiddleware>();
+app.UseAuthentication();
 app.UseAuthorization();
-
-app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
-
+app.MapControllers();
 app.Run();

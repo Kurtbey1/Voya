@@ -9,9 +9,15 @@ namespace Voya.Models
         public long Transaction_ID { get; set; }
 
         public Transaction Transaction { get; set; } = null!;
+        public decimal Amount { get; set; }
 
         public string Payment_Method { get; set; } = string.Empty;
 
-        public Decimal  Amount { get; set; }
+        public string Status { get; set; } = "Pending";
+
+        public string? Stripe_PaymentIntent_Id { get; set; }
+
+        public DateTime Created_At { get; set; } = DateTime.UtcNow;
     }
 }
+  

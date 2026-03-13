@@ -30,6 +30,11 @@ namespace Voya.Data.Configurations
                   .IsRequired()
                   .HasColumnType("DATETIME2");
 
+            entity.HasOne(b => b.Hotel)
+                .WithMany(h => h.Bookings).
+                HasForeignKey(h => h.Hotel_ID)
+                .OnDelete(DeleteBehavior.Restrict);
+
             entity.Property(b => b.Booking_State)
                   .IsRequired()
                   .HasMaxLength(50);
@@ -50,10 +55,7 @@ namespace Voya.Data.Configurations
                   .HasForeignKey(t => t.Booking_ID)
                   .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasMany(b => b.RoomReservations)
-                  .WithOne(r => r.Booking)
-                  .HasForeignKey(r => r.Booking_ID)
-                  .OnDelete(DeleteBehavior.Restrict);
+        
         }
     }
 }

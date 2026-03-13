@@ -1,58 +1,45 @@
-﻿using Microsoft.AspNetCore.Identity;
-using Voya.Models;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Voya.Data;
 using Voya.Dtos.Auth;
 using Voya.Services.Common;
+using Microsoft.Extensions.Logging;
+using BCrypt.Net;
+
 namespace Voya.Services.Auth
 {
-    public class LoginService:ILoginService
+    public class LoginService(AppDbContext context, ILogger<LoginService> logger, ITokenService tokenService) : ILoginService
     {
-        private readonly AppDbContext _context;
-        private readonly ILogger<LoginService> _logger;
-        private readonly ITokenService _tokenService;
-        private readonly IPasswordHasher<User> _passwordHasher;
-
-
-        public LoginService  (AppDbContext context, ILogger<LoginService> logger, ITokenService tokenService, IPasswordHasher<User> passwordHasher)
+        public async Task<Result<LoginResDto>> LoginAsync(LoginReqDto req)
         {
-            _context = context;
-            _logger = logger;
-            _tokenService = tokenService;
-            _passwordHasher = passwordHasher;
-        }
+            logger.LogInformation("Processing login for: {Email}", req.Email);
 
-        public async Task <Result<LoginResDto>> LoginAsync(LoginReqDto req) 
-        {
-            _logger.LogInformation("Logging for Email {Email} is under process", req.Email);
+            var user = await context.Users.SingleOrDefaultAsync(u => u.Email == req.Email);
 
-            var user = await _context.Users.SingleOrDefaultAsync(u => u.Email == req.Email);
-
-            if (user == null) 
+            if (user == null)
             {
-                _logger.LogWarning("LogIn failed because null valus");
-                return Result<LoginResDto>.Failure("Email Or Password Are Required");
-            }
-
-            var verificationResult = _passwordHasher.VerifyHashedPassword(user, user.Password_Hash, req.Password);
-
-            if (verificationResult == PasswordVerificationResult.Failed) 
-            {
-                _logger.LogWarning("Login attempt failed: Wrong password for {Email}.", req.Email);
                 return Result<LoginResDto>.Failure("Invalid Email or Password.");
             }
 
-            var token = _tokenService.CreateToken(user);
+            if (!user.IsActive)
+            {
+                return Result<LoginResDto>.Failure("User account is inactive.");
+            }
 
-            return Result<LoginResDto>.Success(
-                new LoginResDto
-                {
-                    Token = token,
-                    Email = user.Email
-                });
-            
+            bool isPasswordValid = BCrypt.Net.BCrypt.Verify(req.Password, user.Password_Hash);
 
+            if (!isPasswordValid)
+            {
+                return Result<LoginResDto>.Failure("Invalid Email or Password.");
+            }
 
+            var tokenResponse = await tokenService.GenerateTokenAsync(user);
+
+            return Result<LoginResDto>.Success(new LoginResDto
+            {
+                Token = tokenResponse.AccessToken,
+                RefreshToken = tokenResponse.RefreshToken,
+                Email = user.Email ?? string.Empty
+            });
         }
     }
 }

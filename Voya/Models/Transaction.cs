@@ -12,7 +12,7 @@ namespace Voya.Models
 
         public DateTime Transaction_Date { get; set; } = DateTime.UtcNow;
 
-        public string Provider_Ref { get; set; } = string.Empty;
+        public string   Provider_Ref { get; set; } = string.Empty;
 
         public string Transaction_Status { get; set; } = string.Empty;
 

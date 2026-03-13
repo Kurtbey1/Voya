@@ -1,12 +1,12 @@
-﻿using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Voya.Data;
 using Voya.Dtos.Auth;
 using Voya.Models;
 using Voya.Services.Auth;
-using Xunit.Abstractions;
+using Voya.Services.Common; // تأكد من استدعاء الـ Result DTO
+using BCrypt.Net;
 
 namespace Voya.Tests.Services
 {
@@ -14,64 +14,78 @@ namespace Voya.Tests.Services
     {
         private readonly Mock<ITokenService> _mockTokenService;
         private readonly AppDbContext _context;
-        private readonly Mock<IPasswordHasher<User>> _mockPassword;
         private readonly Mock<ILogger<LoginService>> _mockLogger;
         private readonly LoginService _loginService;
 
         public LoginServiceTests()
         {
-            var option = new DbContextOptionsBuilder<AppDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options;
-            _context = new AppDbContext(option);
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options;
+
+            _context = new AppDbContext(options);
             _mockTokenService = new Mock<ITokenService>();
-            _mockPassword = new Mock<IPasswordHasher<User>>();
             _mockLogger = new Mock<ILogger<LoginService>>();
-            _loginService = new LoginService(_context, _mockLogger.Object, _mockTokenService.Object, _mockPassword.Object);
+
+            // التعديل: تمرير 3 باراميترات فقط كما هو موجود في الكود الفعلي الآن
+            _loginService = new LoginService(_context, _mockLogger.Object, _mockTokenService.Object);
         }
 
         [Fact]
-        public async Task Login_ShouldReturnSuccess_WhenPasswordIscorrect()
+        public async Task Login_ShouldReturnSuccess_WhenPasswordIsCorrect()
         {
-            var loginDto = new LoginReqDto { Email = "test@voya.com", Password = "" };
+            // Arrange
+            var rawPassword = "Password123";
+            var hashedPassword = BCrypt.Net.BCrypt.HashPassword(rawPassword); // استخدام BCrypt الحقيقي للـ Setup
 
-            var user = new User { User_ID = 1, Email = loginDto.Email, Password_Hash = loginDto.Password };
+            var loginDto = new LoginReqDto { Email = "test@voya.com", Password = rawPassword };
+            var user = new User
+            {
+                User_ID = 1,
+                Email = loginDto.Email,
+                Password_Hash = hashedPassword,
+                IsActive = true // يجب أن يكون النشط لكي ينجح اللوجن
+            };
+
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
-            _mockTokenService.Setup(x => x.CreateToken(It.IsAny<User>()))
-            .Returns("Fake_JWT_Token");
-            _mockPassword.Setup(x => x.VerifyHashedPassword(It.IsAny<User>(), user.Password_Hash, loginDto.Password))
-                .Returns(PasswordVerificationResult.Success);
 
+            _mockTokenService.Setup(x => x.GenerateTokenAsync(It.IsAny<User>()))
+                .ReturnsAsync(new TokenResponseDto { AccessToken = "Fake_JWT_Token", RefreshToken = "Fake_Refresh" });
+
+            // Act
             var result = await _loginService.LoginAsync(loginDto);
 
-            Assert.NotNull(result);
-            Assert.True(result.IsSuccess, "The login should have succeeded.");
-            Assert.NotNull(result.Value);
-            Assert.Equal("Fake_JWT_Token", result.Value.Token);
-            Console.WriteLine($"The generated token is: {result.Value.Token}");
-
+            // Assert
+            Assert.True(result.IsSuccess);
+            Assert.Equal("Fake_JWT_Token", result.Value!.Token);
         }
 
         [Fact]
-        public async Task Login_ShouldReturnToken_WhenCredentialsAreValid()
+        public async Task Login_ShouldReturnFailure_WhenPasswordIsWrong()
         {
-            var loginDto = new LoginReqDto { Email = "test@voya.com", Password = "" };
+            // Arrange
+            var correctPassword = "CorrectPassword";
+            var wrongPassword = "WrongPassword";
+            var hashedPassword = BCrypt.Net.BCrypt.HashPassword(correctPassword);
 
-            var user = new User { User_ID = 1, Email = loginDto.Email, Password_Hash = loginDto.Password };
+            var loginDto = new LoginReqDto { Email = "test@voya.com", Password = wrongPassword };
+            var user = new User
+            {
+                User_ID = 1,
+                Email = loginDto.Email,
+                Password_Hash = hashedPassword,
+                IsActive = true
+            };
+
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
-            _mockPassword.Setup(x => x.VerifyHashedPassword(It.IsAny<User>(), user.Password_Hash, loginDto.Password))
-                .Returns(PasswordVerificationResult.Failed);
 
+            // Act
             var result = await _loginService.LoginAsync(loginDto);
 
-            Assert.NotNull(result);
-            Assert.False(result.IsSuccess, "The login should have fail.");
-            Assert.Null(result.Value);
-
+            // Assert
+            Assert.False(result.IsSuccess);
+            Assert.Equal("Invalid Email or Password.", result.Error);
         }
-
-
-
     }
-} 
+}

@@ -2,6 +2,7 @@
 {
     public class Result<T>
     {
+        //result pattern for any service return the succses or fail of the service 
         public bool IsSuccess { get;}
         public T? Value { get;}
 
