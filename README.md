@@ -164,7 +164,7 @@ dotnet ef database update
 
 🔒 Security & Authentication
 To protect the API, every request must include the following headers:
-```bash
+```code
 Authorization: Bearer <Your_JWT_Token>
 X-Voya-Secret: <Your_Configured_Secret_Key>
 ```
